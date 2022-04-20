@@ -19,9 +19,11 @@ public class IPFinder : MonoBehaviour
     [SerializeField] private string findIp;
     
     private int _lastPort = 0;
+    private int _sendCount = 0;
+    private readonly int _initThreshold = 2;
     private readonly string _myReq;
     private readonly UdpClient _client = new UdpClient();
-
+    
     private void Start()
     {
         StartCoroutineLoopsToFindRespondent();
@@ -45,11 +47,10 @@ public class IPFinder : MonoBehaviour
 
             port = Mathf.Clamp(port, 49152, 65535);
             _lastPort = port;
-            findHostName = null;
-            findIp = null;
+            ClearResults();
         }
     }
-    
+
     IEnumerator BroadcastFindReqToEveryone()
     {
         byte[] RequestData = Encoding.ASCII.GetBytes(Dns.GetHostName());
@@ -62,6 +63,14 @@ public class IPFinder : MonoBehaviour
                 foreach (var IPAddress in BroadcastAddresses)
                 {
                     _client.Send(RequestData, RequestData.Length, new IPEndPoint(IPAddress, port));
+                    
+                    _sendCount++;
+                    if (_sendCount > _initThreshold)
+                    {
+                        _sendCount = 0;
+                        ClearResults();
+                    }
+                    
                     Debug.Log($"(1)●○ [IP Finder] broadcast [to ip:{IPAddress}]");
                 }
             }
@@ -92,6 +101,12 @@ public class IPFinder : MonoBehaviour
             }
             yield return null;
         }
+    }
+    
+    private void ClearResults()
+    {
+        findHostName = null;
+        findIp = null;
     }
     
     //Get BroadcastAddresses
