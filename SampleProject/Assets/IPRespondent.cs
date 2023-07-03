@@ -13,11 +13,11 @@ public class IPRespondent : MonoBehaviour
     public int port = 55555;
 
     [Header("Requestor's Infos")] 
-    [SerializeField] private string finderHostName;
     [SerializeField] private string finderIp;
 
     private int _lastPort = 0;
     private UdpClient _server = new UdpClient();
+    private const string ReqKey = "FIND_KEY";
 
     private void Start()
     {
@@ -62,18 +62,21 @@ public class IPRespondent : MonoBehaviour
     
     IEnumerator WaitIpFinder() {
         yield return null;
-        byte[] ResponseData = Encoding.ASCII.GetBytes(Dns.GetHostName());
+        byte[] ResponseData = Encoding.ASCII.GetBytes(ReqKey);
         while (true)
         {
             if (_server.Available > 0 ) {
                 try {
                     IPEndPoint UdpServerClientEp = new IPEndPoint(IPAddress.Any, port);
                     byte[] ClientRequestData = _server.Receive(ref UdpServerClientEp);
-                    finderHostName = Encoding.ASCII.GetString(ClientRequestData);
+                    string recvData = Encoding.ASCII.GetString(ClientRequestData);
 
-                    finderIp = UdpServerClientEp.Address.ToString();
-                    _server.Send(ResponseData, ResponseData.Length, UdpServerClientEp);
-                    Debug.Log($"(2)●● [IPRespondent] received from ipFinder (ip:{UdpServerClientEp.Address}) and send myHostName)");
+                    if (string.IsNullOrEmpty(finderIp) && ReqKey.Equals(recvData))
+                    {
+                        finderIp = UdpServerClientEp.Address.ToString();
+                        _server.Send(ResponseData, ResponseData.Length, UdpServerClientEp);
+                        Debug.Log($"(2)●● [IPRespondent] received from ipFinder (ip:{UdpServerClientEp.Address})");
+                    }
                 }
                 catch (Exception e) {
                     Debug.Log($"(-1)○○ [IPRespondent] : Exception: {e}");
