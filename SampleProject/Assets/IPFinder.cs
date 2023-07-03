@@ -9,21 +9,18 @@ using UnityEngine;
 
 public class IPFinder : MonoBehaviour
 {
-    [Header("Your Settings")] 
+    [Header("Your Settings")]
     [Range(49152, 65535)]
     public int port = 55555;
     public float findTimeInterval = 1;
     
     [Header("Result")]
-    [SerializeField] private string findHostName;
     [SerializeField] private string findIp;
     
     private int _lastPort = 0;
-    private int _sendCount = 0;
-    private readonly int _initThreshold = 2;
-    private readonly string _myReq;
     private readonly UdpClient _client = new UdpClient();
-    
+    private const string ReqKey = "FIND_KEY";
+
     private void Start()
     {
         StartCoroutineLoopsToFindRespondent();
@@ -47,13 +44,12 @@ public class IPFinder : MonoBehaviour
 
             port = Mathf.Clamp(port, 49152, 65535);
             _lastPort = port;
-            ClearResults();
         }
     }
 
     IEnumerator BroadcastFindReqToEveryone()
     {
-        byte[] RequestData = Encoding.ASCII.GetBytes(Dns.GetHostName());
+        byte[] RequestData = Encoding.ASCII.GetBytes(ReqKey);
         while (true)
         {
             try
@@ -63,15 +59,7 @@ public class IPFinder : MonoBehaviour
                 foreach (var IPAddress in BroadcastAddresses)
                 {
                     _client.Send(RequestData, RequestData.Length, new IPEndPoint(IPAddress, port));
-                    
-                    _sendCount++;
-                    if (_sendCount > _initThreshold)
-                    {
-                        _sendCount = 0;
-                        ClearResults();
-                    }
-                    
-                    Debug.Log($"(1)●○ [IP Finder] broadcast [to ip:{IPAddress}]");
+                    Debug.Log($"(1)●○ [IP Finder] broadcast [to ip:{IPAddress}/{port}]");
                 }
             }
             catch (Exception e)
@@ -91,9 +79,12 @@ public class IPFinder : MonoBehaviour
                     byte[] ServerResponseData = _client.Receive(ref ServerEp);
                     string ServerResponse = Encoding.ASCII.GetString(ServerResponseData);
 
-                    findHostName = ServerResponse;
-                    findIp = ServerEp.Address.ToString();
-                    Debug.Log($"(2)●● [IP Finder] received [serverHostName:{ServerResponse}, findIp:{findIp}]");
+                    //findIp가 없을때만 갱신
+                    if(string.IsNullOrEmpty(findIp))
+                    {
+                        findIp = ServerEp.Address.ToString();
+                        Debug.Log($"(2)●● [IP Finder] received [serverHostName:{ServerResponse}, findIp:{findIp}]");
+                    }
                 }
                 catch (Exception e) {
                     Debug.Log($"(-1)○○ [IP Finder] Exception: {e}");
@@ -103,13 +94,6 @@ public class IPFinder : MonoBehaviour
         }
     }
     
-    private void ClearResults()
-    {
-        findHostName = null;
-        findIp = null;
-    }
-    
-    //Get BroadcastAddresses
     private IPAddress[] GetDirectedBroadcastAddresses() {
         List<IPAddress> list = new List<IPAddress>();
 
@@ -117,8 +101,8 @@ public class IPFinder : MonoBehaviour
             if (item.NetworkInterfaceType == NetworkInterfaceType.Loopback) {
                 continue;
             }
-
-            if (item.OperationalStatus != OperationalStatus.Up) {
+            
+            if (item.OperationalStatus != OperationalStatus.Up && item.OperationalStatus != OperationalStatus.Unknown) {
                 continue;
             }
 
