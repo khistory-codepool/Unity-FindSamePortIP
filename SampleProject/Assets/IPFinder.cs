@@ -9,6 +9,8 @@ using UnityEngine;
 
 public class IPFinder : MonoBehaviour
 {
+    public Action<IPAddress> onFindIPAddress;
+
     [Header("Your Settings")]
     [Range(49152, 65535)]
     public int port = 55555;
@@ -82,6 +84,7 @@ public class IPFinder : MonoBehaviour
                     //findIp가 없을때만 갱신
                     if(string.IsNullOrEmpty(findIp))
                     {
+                        onFindIPAddress?.Invoke(ServerEp.Address);
                         findIp = ServerEp.Address.ToString();
                         Debug.Log($"(2)●● [IP Finder] received [serverHostName:{ServerResponse}, findIp:{findIp}]");
                     }

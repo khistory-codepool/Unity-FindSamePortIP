@@ -71,7 +71,7 @@ public class IPRespondent : MonoBehaviour
                     byte[] ClientRequestData = _server.Receive(ref UdpServerClientEp);
                     string recvData = Encoding.ASCII.GetString(ClientRequestData);
 
-                    if (string.IsNullOrEmpty(finderIp) && ReqKey.Equals(recvData))
+                    if (ReqKey.Equals(recvData))
                     {
                         finderIp = UdpServerClientEp.Address.ToString();
                         _server.Send(ResponseData, ResponseData.Length, UdpServerClientEp);
